@@ -7,16 +7,19 @@ A Rust implementation of a parameter extraction system using BERT embeddings to 
 
 ```mermaid
 graph TD
-    A["Input Text:<br>send document xxx to user@email.com<br>with title 'Document' and body 'Hello'"] --> B
-    B["BERT Tokenizer:<br>[CLS, send, document, xxx, to,<br>user, @, email, ., com, with]"] --> C
+    A["Input Text:<br>send document xxx with title 'Document' and body 'Hello'"] --> B
+    B["BERT Tokenizer:<br>[CLS, send, document, xxx, to,<br>user, ., com, with]"] --> C
     C["BERT Model:<br>12 transformer layers"] --> D
     D["Embeddings:<br>[0.123, -0.456, ..., 0.789]<br>Shape: [1, 1024]"] --> E
-    E["Similarity Score:<br>Email prompt: 0.82<br>Title prompt: 0.75<br>Body prompt: 0.71"] --> F
-    F["Pattern Matching:<br>Email: user@email.com<br>Title: Document<br>Body: Hello"] --> G
-    G["Parameters:<br>email: user@email.com<br>title: Document<br>body: Hello"]
+    E["Similarity Score:<br>Title prompt: 0.75<br>Body prompt: 0.71"] --> F
+    F["Pattern Matching:<br>Title: Document<br>Body: Hello"] --> G
+    G["Parameters:<br>Document<br>body: Hello"]
 
-    H["Parameter Patterns:<br>Find an email address<br>Find a document title<br>Find a message body"] --> E
-    I["Extraction Rules:<br>Email: contains @<br>Title: between quotes<br>Body: between quotes"] --> F
+    H["Parameter Patterns:<br>Find a document title<br>Find a message body"] --> E
+    I["Extraction Rules:<br>Title: between quotes<br>Body: between quotes"] --> F  
+
+```
+
 
 ### Step-by-Step Process
 
