@@ -3,6 +3,15 @@
 
 A Rust implementation of a parameter extraction system using BERT embeddings to identify and extract structured information from natural language text.
 
+
+## Example Usage
+
+```rust
+let extractor = ParameterExtractor::new()?;
+let text = "send the document xxx to user@email.com with title 'Document' and body 'Hello'";
+let parameters = extractor.extract_parameters(text)?;
+```
+
 ## How It Works
 
 ```mermaid
@@ -39,14 +48,6 @@ graph TD
      - Email: Look for @ symbol
      - Title/Body: Extract text between quotes
      - Attachment: Match specific file patterns
-
-## Example Usage
-
-```rust
-let extractor = ParameterExtractor::new()?;
-let text = "send the document xxx to user@email.com with title 'Document' and body 'Hello'";
-let parameters = extractor.extract_parameters(text)?;
-```
 
 ## Supported Parameters
 
