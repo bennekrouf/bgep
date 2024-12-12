@@ -2,4 +2,6 @@
 **/*.rs.bk
 Cargo.lock
 .env
+/bin/act
+bin
 bin/act
