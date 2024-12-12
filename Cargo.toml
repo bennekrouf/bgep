@@ -1,0 +1,13 @@
+[package]
+name = "bgep"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.94"
+candle-core = "0.8.1"
+candle-nn = "0.8.1"
+candle-transformers = "0.8.1"
+hf-hub = "0.3.2"
+serde_json = "1.0.133"
+tokenizers = "0.21.0"
