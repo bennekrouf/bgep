@@ -7,16 +7,15 @@ A Rust implementation of a parameter extraction system using BERT embeddings to 
 
 ```mermaid
 graph TD
-    A[Input Text] --> B[BERT Tokenizer]
-    B --> C[BERT Model]
-    C --> D[Get Embeddings]
-    D --> E[Calculate Similarity]
-    E --> F[Extract Values]
-    F --> G[Output Parameters]
+    A["Input Text<br><br>'send document xxx to user@email.com<br>with title 'Document' and body 'Hello''"] --> B["BERT Tokenizer<br><br>Tokens: [CLS, send, document, xxx, to,<br>user, @, email, ., com, with, ...]"]
+    B --> C["BERT Model<br><br>Processes tokens through<br>12 transformer layers"]
+    C --> D["Get Embeddings<br><br>CLS Token Embedding Vector:<br>[0.123, -0.456, ..., 0.789]<br>Shape: [1, 1024]"]
+    D --> E["Calculate Similarity<br><br>Prompt: 'Find an email address'<br>Similarity Score: 0.82"]
+    E --> F["Extract Values<br><br>Pattern Match: user@email.com<br>Found between positions 19-33"]
+    F --> G["Output Parameters<br><br>{<br>  'email': 'user@email.com',<br>  'title': 'Document',<br>  'body': 'Hello'<br>}"]
 
-    H[Parameter Patterns] --> E
-    I[Regular Expressions] --> F
-```
+    H["Parameter Patterns<br><br>'Find an email address'<br>'Find a document title'<br>'Find a message body'"] --> E
+    I["Regular Expressions<br><br>Email: contains '@'<br>Title: between 'title' quotes<br>Body: between 'body' quotes"] --> F```
 
 ### Step-by-Step Process
 
