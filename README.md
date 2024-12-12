@@ -57,6 +57,75 @@ let parameters = extractor.extract_parameters(text)?;
 | body | Message content | 'Message text' |
 | attachment | File names | document.pdf, xxx |
 
+
+## Local GitHub Actions Testing
+
+### Install Act
+On Mac:
+```bash
+brew install act
+```
+
+On Ubuntu:
+```bash
+# Using script installer
+curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+
+# Or using snap
+sudo snap install act
+
+
+### If it doesn't work try :
+
+#### Download the latest binary
+cd /tmp
+curl -L -o act.tar.gz https://github.com/nektos/act/releases/latest/download/act_Linux_x86_64.tar.gz
+
+#### Extract it
+tar xf act.tar.gz
+
+#### Move to a directory in your PATH
+sudo mv act /usr/local/bin/
+
+#### Make it executable
+sudo chmod +x /usr/local/bin/act
+```
+
+### Running Actions Locally
+
+1. Run a dry-run to see what would happen:
+```bash
+act -n
+```
+
+2. Run all workflows:
+```bash
+act
+```
+
+3. Run a specific job:
+```bash
+act -j test    # Run only tests
+act -j clippy  # Run only clippy checks
+act -j format  # Run only format checks
+```
+
+4. Run with verbose output:
+```bash
+act -v
+```
+
+Note: The first run might take some time as it downloads the required Docker images.
+
+### Common Issues
+- If you get Docker permission errors on Ubuntu, add your user to the docker group:
+  ```bash
+  sudo usermod -aG docker $USER
+  # Log out and back in for changes to take effect
+  ```
+- If you see "invalid reference format" on Mac, ensure Docker Desktop is running
+
+
 ## Dependencies
 
 - candle-core: BERT model implementation

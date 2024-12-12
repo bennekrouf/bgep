@@ -11,3 +11,15 @@ candle-transformers = "0.8.1"
 hf-hub = "0.3.2"
 serde_json = "1.0.133"
 tokenizers = "0.21.0"
+tokio = { version = "1.42.0", features = ["full"] }
+
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+
+
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
