@@ -1,0 +1,59 @@
+model_id: "katanemo/bge-large-en-v1.5"
+default_threshold: 0.6
+
+parameters:
+  - name: "title"
+    prompts:
+      - "This text describes what the document is about"
+      - "This is the main topic"
+      - "This is a title"
+      - "This is a document heading"
+      - "This summarizes the document"
+    threshold: 0.65
+    context_window: 5
+    markers:
+      - "title"
+      - "titre"
+      - "titulo"
+      - "subject"
+      - "re:"
+      - "topic"
+
+  - name: "email"
+    prompts:
+      - "This is an email address"
+      - "This is contact information"
+      - "This is used for communication"
+    threshold: 0.6
+    context_window: 3
+    markers:
+      - "@"
+      - "email"
+      - "contact"
+      - "reply to"
+
+  - name: "body"
+    prompts:
+      - "This is the main message content"
+      - "This explains the details"
+      - "This is the primary information"
+    threshold: 0.6
+    context_window: 10
+    markers:
+      - "body"
+      - "message"
+      - "content"
+      - "details"
+
+  - name: "attachment"
+    prompts:
+      - "This refers to an attached file"
+      - "This is a document name"
+      - "This is an attachment reference"
+    threshold: 0.6
+    context_window: 3
+    markers:
+      - "attach"
+      - "file"
+      - "doc"
+      - "pdf"

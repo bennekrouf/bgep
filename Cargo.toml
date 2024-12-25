@@ -9,9 +9,14 @@ candle-core = "0.8.1"
 candle-nn = "0.8.1"
 candle-transformers = "0.8.1"
 hf-hub = "0.3.2"
+lazy_static = "1.5.0"
+serde = { version = "1.0.216", features = ["derive"] }
 serde_json = "1.0.133"
+serde_yaml = "0.9.34"
 tokenizers = "0.21.0"
 tokio = { version = "1.42.0", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
 
 
 [workspace.lints.clippy]

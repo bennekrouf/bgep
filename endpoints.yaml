@@ -1,0 +1,47 @@
+endpoints:
+  - id: "order_sandwich"
+    text: "commander un tacos"
+    patterns:
+      - "je veux un tacos sauce {sauce}"
+    description: "Commander un tacos"
+    parameters:
+      - name: "sauce"
+        description: "Sauce"
+        required: true
+
+  - id: "analyze_specific_repository"
+    text: "lancer analyse"
+    patterns:
+      - "analyse de {app}"
+      - "analyser {app}"
+      - "lancer analyse de {app}"
+      - "demarrer analyse de {app}"
+      - "lance analyse de {app}"
+      - "fait peter analyse de {app}"
+    description: "Exécuter une tâche d'analyse"
+    parameters:
+      - name: "app"
+        description: "Nom de l'application à analyser"
+        required: true
+
+  - id: "send_email"
+    text: "envoyer email"
+    patterns:
+      - "envoie un email à {email} dont le titre est {title}"
+      - "envoyer un mail à {email}"
+      - "envoyer un email à {email}"
+      - "envoie le mail à {email}"
+      - "envoie un mail à {email}"
+      - "envoie le document par mail à {email}"
+      - "envoie le document à {email}"
+      - "envoi le mail à {email}"
+      - "envoi le rapport à {email}"
+      - "envoyer le document à {email}"
+    description: "Envoyer un document par email"
+    parameters:
+      - name: "email"
+        description: "Adresse email du destinataire"
+        required: true
+      - name: "title"
+        description: "Titre du mail"
+        required: false
