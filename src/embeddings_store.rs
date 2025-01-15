@@ -30,7 +30,7 @@ impl EmbeddingsStore {
         Ok(count == 0)
     }
 
-    pub async fn new(db_path: &str) -> Result<Self> {
+    pub async fn new(_db_path: &str) -> Result<Self> {
         let db_path = "data/mydb";
         let connection = connect(db_path).execute().await?;
         let schema = Arc::new(Schema::new(vec![

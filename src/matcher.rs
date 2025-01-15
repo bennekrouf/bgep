@@ -1,5 +1,4 @@
 use crate::config::Config;
-use std::collections::HashSet;
 use crate::embeddings_store::{EmbeddingsStore, SearchResult};
 use anyhow::Result;
 use candle_core::{DType, Device, Tensor};
@@ -28,36 +27,10 @@ pub struct Matcher {
 }
 
 #[derive(Debug)]
-pub struct Match {
-    pub field: String,
-    pub text: String,
-    pub similar_fields: Vec<SearchResult>,
-}
-
-#[derive(Debug)]
-pub struct IntentMatch {
-    pub endpoint_id: String,
-    pub confidence: f32,
-}
-
-#[derive(Debug)]
-pub struct ParameterMatch {
-    pub field: String,
-    pub text: String,
-    pub matches: Vec<FieldMatch>,
-}
-
-#[derive(Debug)]
 pub struct FieldMatch {
     pub parameter_name: String,
-    pub endpoint_id: String,
+    endpoint_id: String,
     pub confidence: f32,
-}
-
-#[derive(Debug)]
-pub struct CompleteMatch {
-    pub endpoint: IntentMatch,
-    pub parameters: Vec<ParameterMatch>,
 }
 
 impl Matcher {
@@ -111,129 +84,61 @@ impl Matcher {
     }
 
     async fn initialize_embeddings(&self) -> Result<()> {
-        info!("Initializing embeddings for config...");
         for endpoint in &self.config.endpoints {
-            // Store parameter field name embeddings with full context
-            for param in &endpoint.parameters {
-                let param_context = format!(
-                    "Parameter '{}' for {} operation: {}",
-                    param.name,
-                    endpoint.text,
-                    param.description
-                );
-                debug!("Computing embedding for parameter context: {}", param_context);
-                let param_embedding = self.compute_embedding(&param_context)?;
-                self.embeddings_store
-                    .store_embedding(
-                        &format!("param:{}:{}", endpoint.id, param.name),
-                        &param_context,
-                        &endpoint.id,
-                        param_embedding,
-                    )
-                    .await?;
+            debug!("Storing embeddings for endpoint: {}", endpoint.id);
+            debug!("  Text: '{}'", endpoint.text);
+            debug!("  Description: '{}'", endpoint.description);
 
-                // Store alternatives with context
-                if let Some(alternatives) = &param.alternatives {
-                    for alt in alternatives {
-                        let alt_context = format!(
-                            "Alternative field name '{}' for parameter '{}' in {} operation: {}",
-                            alt,
-                            param.name,
-                            endpoint.text,
-                            param.description
-                        );
-                        debug!("Computing embedding for alternative context: {}", alt_context);
-                        let alt_embedding = self.compute_embedding(&alt_context)?;
-                        self.embeddings_store
-                            .store_embedding(
-                                &format!("param:{}:{}_alt:{}", endpoint.id, param.name, alt),
-                                &alt_context,
-                                &endpoint.id,
-                                alt_embedding,
-                            )
-                            .await?;
+            // Add endpoint text and description embeddings
+            let text_embedding = self.compute_embedding(&endpoint.text)?;
+            self.embeddings_store
+                .store_embedding(
+                    &format!("endpoint:{}", endpoint.id),
+                    &endpoint.text,  // This is what will be compared
+                    &endpoint.id,
+                    text_embedding,
+                )
+                .await?;
+
+            let desc_embedding = self.compute_embedding(&endpoint.description)?;
+            self.embeddings_store
+                .store_embedding(
+                    &format!("endpoint:{}_desc", endpoint.id),
+                    &endpoint.description,
+                    &endpoint.id,
+                    desc_embedding,
+                )
+                .await?;
+
+                for param in &endpoint.parameters {
+                    // Store just the parameter name
+                    let param_embedding = self.compute_embedding(&param.name)?;
+                    self.embeddings_store
+                        .store_embedding(
+                            &format!("param:{}:{}", endpoint.id, param.name),
+                            &param.name,
+                            &endpoint.id,
+                            param_embedding,
+                        )
+                        .await?;
+
+                    // Store alternatives as simple field names
+                    if let Some(alternatives) = &param.alternatives {
+                        for alt in alternatives {
+                            let alt_embedding = self.compute_embedding(alt)?;
+                            self.embeddings_store
+                                .store_embedding(
+                                    &format!("param:{}:{}_alt:{}", endpoint.id, param.name, alt),
+                                    alt,
+                                    &endpoint.id,
+                                    alt_embedding,
+                                )
+                                .await?;
+                        }
                     }
-                }
             }
         }
-        info!("Finished initializing embeddings");
         Ok(())
-    }
-
-    pub async fn match_json_two_phase(&self, json_str: &str) -> Result<Vec<Match>> {
-        let json: Value = serde_json::from_str(json_str)?;
-        let mut matches = Vec::new();
-
-        // Phase 1: Match intent only with endpoint text and descriptions
-        let request = json["request"].as_str()
-            .ok_or_else(|| anyhow::anyhow!("No request field found"))?;
-        debug!("\nAnalyzing request: '{}'", request);
-        let request_embedding = self.compute_embedding(request)?;
-
-        // Get all matches first for debugging
-        let all_matches = self.embeddings_store
-            .search_similar(request_embedding, 10)
-            .await?;
-
-        debug!("\nAll matches for request:");
-        for m in &all_matches {
-            debug!("- {} (score: {:.4})", m.key, m.score);
-        }
-
-        // Get unique endpoint matches
-        let unique_endpoints: Vec<_> = all_matches.into_iter()
-            .filter(|m| {
-                let is_endpoint = m.key.starts_with("endpoint:");
-                let is_pure_endpoint = !m.key.ends_with("_desc");
-                debug!("Matching '{}' against endpoint '{}': score={:.4}", 
-                    request, m.key, m.score);
-                debug!("  is_endpoint={}, is_pure_endpoint={}", 
-                    is_endpoint, is_pure_endpoint);
-                is_endpoint && is_pure_endpoint
-            })
-            .collect();
-
-        // Remove duplicates by key
-        let mut seen_keys = std::collections::HashSet::new();
-        let potential_endpoints: Vec<_> = unique_endpoints.into_iter()
-            .filter(|result| seen_keys.insert(result.key.clone()))
-            .collect();
-
-        debug!("\nFinal endpoint matches:");
-        for ep in &potential_endpoints {
-            debug!("- {} (score: {:.4})", ep.key, ep.score);
-        }
-
-        // Phase 2: Match field names only, not their values
-        if let Value::Object(map) = json {
-            for field in map.keys() {
-                if field != "request" {
-                    debug!("Matching field name: {}", field);
-
-                    let field_context = format!(
-                        "Field name '{}' for potential parameter matching",
-                        field
-                    );
-
-                    let field_embedding = self.compute_embedding(&field_context)?;
-                    let similar = self
-                        .embeddings_store
-                        .search_similar(field_embedding, 5)
-                        .await?
-                        .into_iter()
-                        .filter(|m| m.key.starts_with("param:")) // Only consider parameter matches
-                        .collect::<Vec<_>>();
-
-                    matches.push(Match {
-                        field: field.clone(),
-                        text: field.clone(), // Use field name instead of value
-                        similar_fields: similar,
-                    });
-                }
-            }
-        }
-
-        Ok(matches)
     }
 
     fn compute_embedding(&self, text: &str) -> Result<Vec<f32>> {
@@ -277,201 +182,65 @@ impl Matcher {
         Ok(embedding_vec)
     }
 
-    pub async fn match_json(&self, json_str: &str) -> Result<Vec<Match>> {
-        let json: Value = serde_json::from_str(json_str)?;
-        let mut matches = Vec::new();
-
-        // Match each string field in the JSON
-        if let Value::Object(map) = json {
-            for (field, value) in map {
-                if let Value::String(text) = value {
-                    debug!("Computing embedding for field {}: {}", field, text);
-
-                    // Create a contextual embedding using the field name
-                    let contextual_text = format!("{} field with value: {}", field, text);
-                    let embedding = self.compute_embedding(&contextual_text)?;
-                    let similar = self.embeddings_store.search_similar(embedding, 5).await?;
-
-                    matches.push(Match {
-                        field,
-                        text: text.to_string(),
-                        similar_fields: similar,
-                    });
-                }
-            }
-        }
-
-        Ok(matches)
-    }
-
-    // Phase 1: Match the intent
-    async fn match_intent(&self, request: &str) -> Result<IntentMatch> {
-        debug!("Matching intent for request: {}", request);
-        let embedding = self.compute_embedding(request)?;
-
-        // Search for endpoint matches (using endpoint text and description)
-        let similar = self.embeddings_store.search_similar(embedding, 3).await?;
-
-        // Get the best match
-        let best_match = similar
-            .into_iter()
-            .find(|result| result.key.starts_with("endpoint:"))
-            .ok_or_else(|| anyhow::anyhow!("No matching endpoint found"))?;
-
-        Ok(IntentMatch {
-            endpoint_id: best_match.endpoint_id,
-            confidence: best_match.score,
-        })
-    }
-
-    // Phase 2: Match parameters for the identified endpoint
-    async fn match_parameters(
-        &self,
-        intent: &IntentMatch,
-        json: &Value,
-    ) -> Result<Vec<ParameterMatch>> {
-        let mut matches = Vec::new();
-
-        // Get the endpoint configuration
-        let endpoint = self
-            .config
-            .endpoints
-            .iter()
-            .find(|e| e.id == intent.endpoint_id)
-            .ok_or_else(|| anyhow::anyhow!("Endpoint not found"))?;
-
-        // Process each field in the JSON except 'request'
-        if let Value::Object(map) = json {
-            for (field, value) in map {
-                if field != "request" {
-                    if let Value::String(text) = value {
-                        // Create contextual embedding using the endpoint
-                        let context = format!(
-                            "For {} operation, field {} with value: {}",
-                            endpoint.description, field, text
-                        );
-                        let embedding = self.compute_embedding(&context)?;
-
-                        // Search for parameter matches within this endpoint
-                        let similar = self.embeddings_store.search_similar(embedding, 3).await?;
-
-                        let field_matches: Vec<FieldMatch> = similar
-                            .clone()
-                            .into_iter()
-                            .map(|match_result| FieldMatch {
-                                parameter_name: extract_parameter_name(&match_result.key),
-                                endpoint_id: match_result.endpoint_id,
-                                confidence: match_result.score,
-                            })
-                            .collect();
-
-                        // Find best parameter match
-                        if let Some(best_match) = similar.into_iter().find(|result| {
-                            result
-                                .key
-                                .starts_with(&format!("param:{}:", intent.endpoint_id))
-                        }) {
-                            matches.push(ParameterMatch {
-                                field: field.clone(),
-                                text: text.clone(),
-                                matches: field_matches,
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(matches)
-    }
-
     pub async fn match_json_holistic(&self, json_str: &str) -> Result<Vec<EndpointMatches>> {
+
         let json: Value = serde_json::from_str(json_str)?;
         let mut endpoint_matches = Vec::new();
 
-        // Phase 1: Get endpoint matches from request
+        // Phase 1: Match request with endpoint text/description
         let request = json["request"].as_str()
             .ok_or_else(|| anyhow::anyhow!("No request field found"))?;
         debug!("\nAnalyzing request: '{}'", request);
         let request_embedding = self.compute_embedding(request)?;
 
-        // Get all matches first for debugging
-        let all_matches = self.embeddings_store
+        // Get endpoint matches and deduplicate
+        let mut seen_keys = std::collections::HashSet::new();
+        let potential_endpoints: Vec<_> = self.embeddings_store
             .search_similar(request_embedding, 10)
-            .await?;
-
-        debug!("\nAll matches for request:");
-        for m in &all_matches {
-            debug!("- {} (score: {:.4})", m.key, m.score);
-        }
-
-        // First try to get pure endpoint matches
-        let mut potential_endpoints: Vec<_> = all_matches.clone().into_iter()
+            .await?
+            .into_iter()
             .filter(|m| {
                 let is_endpoint = m.key.starts_with("endpoint:");
                 let is_pure_endpoint = !m.key.ends_with("_desc");
-                debug!("Matching '{}' against endpoint '{}': score={:.4}", 
-                    request, m.key, m.score);
-                debug!("  is_endpoint={}, is_pure_endpoint={}", 
-                    is_endpoint, is_pure_endpoint);
-                        is_endpoint && is_pure_endpoint
-                    })
-                    .collect();
-
-        // If no pure endpoints found, fall back to all endpoint matches
-        if potential_endpoints.is_empty() {
-            debug!("No pure endpoint matches found, falling back to all endpoint matches");
-            potential_endpoints = all_matches.into_iter()
-                .filter(|m| m.key.starts_with("endpoint:"))
-                .collect();
-        }
-
-        debug!("\nFinal endpoint matches:");
-        for ep in &potential_endpoints {
-            debug!("- {} (score: {:.4})", ep.key, ep.score);
-        }
-
-        let potential_endpoints = potential_endpoints.into_iter()
-            .filter(|m| m.key.starts_with("endpoint:"))
-            .collect::<Vec<_>>();
+                debug!("Endpoint matching:");
+                debug!("  Request: '{}'", request);
+                debug!("  Endpoint key: '{}'", m.key);
+                debug!("  Endpoint text: '{}'", m.value);  // This should be the endpoint text or description
+                debug!("  Score: {:.4}", m.score);
+                is_endpoint && is_pure_endpoint && seen_keys.insert(m.key.clone())
+            })
+            .collect();
 
         // Phase 2: For each potential endpoint, evaluate field matches
         for endpoint_match in potential_endpoints {
         let endpoint_id = &endpoint_match.endpoint_id;
-
 
         // Get the endpoint configuration
         let endpoint_config = self.config.endpoints.iter()
             .find(|e| &e.id == endpoint_id)
             .ok_or_else(|| anyhow::anyhow!("Endpoint not found"))?;
 
-        let mut endpoint_specific_matches = Vec::new();
+        // let mut endpoint_specific_matches = Vec::new();
+        let mut endpoint_specific_matches: Vec<(&String, Vec<SearchResult>)> = Vec::new();
 
         // Get all field matches for this endpoint first
         if let Value::Object(map) = &json {
             for field_name in map.keys() {
                 if field_name != "request" {
-                    debug!("\nAnalyzing field '{}' for endpoint '{}':", field_name, endpoint_id);
+                    debug!("\nParameter matching:");
+                    debug!("  Field name: '{}'", field_name);
                     let field_embedding = self.compute_embedding(field_name)?;
                     let matches = self.embeddings_store
                         .search_similar(field_embedding, 3)
                         .await?;
 
-                    debug!("Field '{}' matches:", field_name);
                     for m in &matches {
-                        debug!("  - {} (score: {:.4})", m.key, m.score);
-                    }
-
-                    let endpoint_matches: Vec<_> = matches.clone().into_iter()
-                        .filter(|m| m.key.starts_with(&format!("param:{}:", endpoint_id)))
-                        .collect();
-
-                    if !endpoint_matches.is_empty() {
-                        debug!("Matched parameters for field '{}':", field_name);
-                        for m in &endpoint_matches {
-                            debug!("  - {} (score: {:.4})", m.key, m.score);
+                        debug!("  Against parameter: '{}'", extract_parameter_name(&m.key));
+                        if m.key.contains("_alt:") {
+                            debug!("    (alternative name for '{}')", 
+                                extract_base_param_name(&m.key));
                         }
-                        endpoint_specific_matches.push((field_name, endpoint_matches));
+                        debug!("    Score: {:.4}", m.score);
                     }
                 }
             }
@@ -537,4 +306,13 @@ impl Matcher {
 fn extract_parameter_name(key: &str) -> String {
     // Format is "param:endpoint_id:parameter_name"
     key.split(':').nth(2).unwrap_or("unknown").to_string()
+}
+
+fn extract_base_param_name(key: &str) -> String {
+    // For "param:send_email:to_alt:recipient_email", returns "to"
+    key.split(':')
+        .nth(2)  // Get the base parameter name part
+        .map(|s| s.split("_alt").next().unwrap_or(s))
+        .unwrap_or("unknown")
+        .to_string()
 }

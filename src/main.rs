@@ -21,8 +21,8 @@ async fn main() -> Result<()> {
     let json = r#"{
         "request": "send a email to John",
         "recipient_email": "jd340@gmail.com",
-        "email_title": "new report",
-        "email_body": "Hi James here is the new report. best regards"
+        // "email_title": "new report",
+        // "email_body": "Hi James here is the new report. best regards"
     }"#;
 
     let matches = matcher.match_json_holistic(json).await?;
@@ -43,18 +43,5 @@ async fn main() -> Result<()> {
         }
     }
 
-    // let matches = matcher.match_json_two_phase(json).await?;
-    //
-    // // Print all matches with probabilities
-    // for m in &matches {
-    //     println!("\nField '{}' with value '{}' matches:", m.field, m.text);
-    //     for similar in &m.similar_fields {
-    //         println!("  - {} (endpoint: {}, confidence: {:.4})",
-    //             similar.key,
-    //             similar.endpoint_id,
-    //             similar.score
-    //         );
-    //     }
-    // }
     Ok(())
 }
