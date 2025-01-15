@@ -221,7 +221,7 @@ impl Matcher {
             .ok_or_else(|| anyhow::anyhow!("Endpoint not found"))?;
 
         // let mut endpoint_specific_matches = Vec::new();
-        let mut endpoint_specific_matches: Vec<(&String, Vec<SearchResult>)> = Vec::new();
+        let endpoint_specific_matches: Vec<(&String, Vec<SearchResult>)> = Vec::new();
 
         // Get all field matches for this endpoint first
         if let Value::Object(map) = &json {
