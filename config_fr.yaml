@@ -1,0 +1,132 @@
+endpoints:
+  - id: "send_email"
+    text: "envoyer un email"
+    description: "Envoyer un email avec pièces jointes possibles"
+    parameters:
+      - name: "to"
+        description: "Adresse email du destinataire"
+        required: true
+      - name: "subject"
+        description: "Sujet du mail"
+        required: true
+      - name: "body"
+        description: "Contenu du mail"
+        required: true
+      - name: "attachments"
+        description: "Pièces jointes"
+        required: false
+
+  - id: "create_ticket"
+    text: "créer un ticket"
+    description: "Créer un nouveau ticket de support"
+    parameters:
+      - name: "title"
+        description: "Titre du ticket"
+        required: true
+      - name: "priority"
+        description: "Priorité du ticket (urgent, normal, low)"
+        required: true
+      - name: "description"
+        description: "Description détaillée du problème"
+        required: true
+
+  - id: "schedule_meeting"
+    text: "planifier une réunion"
+    description: "Organiser une réunion ou un rendez-vous"
+    parameters:
+      - name: "date"
+        description: "Date de la réunion"
+        required: true
+      - name: "time"
+        description: "Heure de la réunion"
+        required: true
+      - name: "participants"
+        description: "Liste des participants"
+        required: true
+      - name: "duration"
+        description: "Durée en minutes"
+        required: true
+      - name: "topic"
+        description: "Sujet de la réunion"
+        required: false
+
+  - id: "analyze_logs"
+    text: "analyser les logs"
+    description: "Analyser les logs d'une application"
+    parameters:
+      - name: "app_name"
+        description: "Nom de l'application"
+        required: true
+      - name: "start_date"
+        description: "Date de début d'analyse"
+        required: true
+      - name: "end_date"
+        description: "Date de fin d'analyse"
+        required: true
+      - name: "log_level"
+        description: "Niveau de log (ERROR, WARN, INFO, DEBUG)"
+        required: false
+
+  - id: "deploy_app"
+    text: "déployer une application"
+    description: "Déployer une application en production"
+    parameters:
+      - name: "app_name"
+        description: "Nom de l'application à déployer"
+        required: true
+      - name: "version"
+        description: "Version à déployer"
+        required: true
+      - name: "environment"
+        description: "Environnement cible (prod, staging, dev)"
+        required: true
+      - name: "rollback_version"
+        description: "Version de rollback en cas d'erreur"
+        required: false
+
+  - id: "generate_report"
+    text: "générer un rapport"
+    description: "Générer un rapport d'analyse ou statistiques"
+    parameters:
+      - name: "report_type"
+        description: "Type de rapport (sales, traffic, performance)"
+        required: true
+      - name: "period"
+        description: "Période du rapport (daily, weekly, monthly)"
+        required: true
+      - name: "format"
+        description: "Format de sortie (PDF, Excel, CSV)"
+        required: true
+
+  - id: "backup_database"
+    text: "sauvegarder la base de données"
+    description: "Créer une sauvegarde de la base de données"
+    parameters:
+      - name: "database"
+        description: "Nom de la base de données"
+        required: true
+      - name: "backup_type"
+        description: "Type de backup (full, incremental)"
+        required: true
+      - name: "compression"
+        description: "Niveau de compression (none, low, high)"
+        required: false
+
+  - id: "process_payment"
+    text: "traiter un paiement"
+    description: "Traiter un paiement client"
+    parameters:
+      - name: "amount"
+        description: "Montant du paiement"
+        required: true
+      - name: "currency"
+        description: "Devise (EUR, USD)"
+        required: true
+      - name: "payment_method"
+        description: "Méthode de paiement (card, transfer, paypal)"
+        required: true
+      - name: "customer_id"
+        description: "Identifiant du client"
+        required: true
+model_id: "BAAI/bge-large-en"
+default_threshold: 0.7

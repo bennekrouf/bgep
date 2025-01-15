@@ -1,59 +1,60 @@
-use anyhow::{Result, Context};
-use bgep::ParameterExtractor;
-use std::path::Path;
-use tracing::{info, error, debug};
+mod config;
+mod embeddings_store;
+mod matcher;
+use crate::matcher::Matcher;
+use anyhow::Result;
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber;
 
-fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
-    let config_path = "config.yaml";
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Initialize logging
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::DEBUG)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)?;
 
-    info!("Attempting to load config from: {}", config_path);
+    // Initialize matcher
+    let matcher = Matcher::new("config.yaml", "db", false).await?;
 
-    // Check if file exists
-    if !Path::new(config_path).exists() {
-        error!("Config file not found at path: {}", config_path);
-        return Err(anyhow::anyhow!("Config file not found"));
-    }
-    debug!("Config file exists");
+    // Example JSON
+    let json = r#"{
+        "request": "send a email to John",
+        "recipient_email": "jd340@gmail.com",
+        "email_title": "new report",
+        "email_body": "Hi James here is the new report. best regards"
+    }"#;
 
-    // Read file contents
-    let contents = std::fs::read_to_string(config_path)
-        .with_context(|| format!("Failed to read config file: {}", config_path))?;
-    debug!("Raw config contents:\n{}", contents);
+    let matches = matcher.match_json_holistic(json).await?;
 
-    // Try to parse as YAML
-    match serde_yaml::from_str::<serde_yaml::Value>(&contents) {
-        Ok(yaml) => debug!("Successfully parsed YAML:\n{:#?}", yaml),
-        Err(e) => error!("Failed to parse YAML: {}", e),
-    }
-
-    // Try creating the extractor
-    info!("Attempting to create ParameterExtractionSystem");
-    match ParameterExtractor::new(config_path) {
-        Ok(_) => info!("Successfully created ParameterExtractionSystem"),
-        Err(e) => {
-            error!("Failed to create ParameterExtractionSystem: {}", e);
-            error!("Error details: {:#?}", e);
+    for endpoint_match in matches {
+        println!(
+            "\nEndpoint: {} (confidence: {:.4}, overall score: {:.4})",
+            endpoint_match.endpoint_id,
+            endpoint_match.endpoint_confidence,
+            endpoint_match.overall_score
+        );
+        println!("Matched fields:");
+        for field_match in endpoint_match.field_matches {
+            println!(
+                "  - {} (confidence: {:.4})",
+                field_match.parameter_name, field_match.confidence
+            );
         }
     }
 
-    let extractor = ParameterExtractor::new(config_path)?;
-
-    let texts = vec![
-        "send the document xxx to gg@gmail.com with title 'New document' and body 'hi James, here is the document'",
-        "envoie à Jeanle the document xxx dont le title 'New document' and body 'hi James, here is the document' à l'adresse email mohamed@benek.com",
-        "envoie un email à john@example.com dont le titre est Hello",
-    ];
-
-    for text in texts {
-        println!("\nAnalyzing text: {}", text);
-        let parameters = extractor.extract_parameters(text)?;
-
-        println!("Extracted parameters:");
-        for (param_type, value) in parameters {
-            println!("  {}: {}", param_type, value);
-        }
-    }
-
+    // let matches = matcher.match_json_two_phase(json).await?;
+    //
+    // // Print all matches with probabilities
+    // for m in &matches {
+    //     println!("\nField '{}' with value '{}' matches:", m.field, m.text);
+    //     for similar in &m.similar_fields {
+    //         println!("  - {} (endpoint: {}, confidence: {:.4})",
+    //             similar.key,
+    //             similar.endpoint_id,
+    //             similar.score
+    //         );
+    //     }
+    // }
     Ok(())
 }

@@ -40,19 +40,19 @@ async fn test_title_extraction() -> Result<()> {
     let extractor = setup().await?;
     let test_cases = vec![
         (
-            "document with title 'Test Title' here", 
+            "document with title 'Test Title' here",
             Some("Test Title"),
-            "Failed to extract simple title"
+            "Failed to extract simple title",
         ),
         (
-            "no title markers here", 
+            "no title markers here",
             None,
-            "Should not extract title when none exists"
+            "Should not extract title when none exists",
         ),
         (
             "title 'Multiple Words Title' test",
             Some("Multiple Words Title"),
-            "Failed to extract multi-word title"
+            "Failed to extract multi-word title",
         ),
     ];
 
@@ -62,10 +62,9 @@ async fn test_title_extraction() -> Result<()> {
             .iter()
             .find(|(param_type, _)| *param_type == "title")
             .map(|(_, value)| value.as_str());
-        
+
         assert_eq!(
-            title, 
-            expected,
+            title, expected,
             "{} - Input: '{}', Got: '{:?}', Expected: '{:?}'",
             error_message, input, title, expected
         );

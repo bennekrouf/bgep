@@ -1,0 +1,18 @@
+parameters:
+  - name: email
+    prompts:
+      - "this is an email address"
+      - "this represents an electronic mail contact"
+    threshold: 0.8
+  - name: document_title
+    prompts:
+      - "this is a document title"
+      - "this represents the name or heading of a document"
+    threshold: 0.75
+  - name: action
+    prompts:
+      - "this represents an action or command"
+      - "this is an instruction to do something"
+    threshold: 0.7
+model_id: "katanemo/bge-large-en-v1.5"
+default_threshold: 0.7
