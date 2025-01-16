@@ -45,9 +45,9 @@ endpoints:
         required: true
         alternatives:
           - "ticket_title"
-          - "issue_title"
-          - "ticket_name"
-          - "issue_name"
+          # - "issue_title"
+          # - "ticket_name"
+          # - "issue_name"
       # - name: "priority"
       #   description: "Ticket priority (urgent, normal, low)"
       #   required: true

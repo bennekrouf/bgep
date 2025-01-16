@@ -29,6 +29,7 @@ pub struct Matcher {
 #[derive(Debug)]
 pub struct FieldMatch {
     pub parameter_name: String,
+    #[warn(dead_code)]
     endpoint_id: String,
     pub confidence: f32,
 }

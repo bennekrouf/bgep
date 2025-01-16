@@ -20,10 +20,15 @@ async fn main() -> Result<()> {
     // Example JSON
     let json = r#"{
         "request": "send a email to John",
-        "recipient_email": "jd340@gmail.com",
-        // "email_title": "new report",
-        // "email_body": "Hi James here is the new report. best regards"
+        "recipient_email": "jd340@gmail.com"
     }"#;
+
+    // let json = r#"{
+    //     "request": "send a email to John",
+    //     "recipient_email": "jd340@gmail.com",
+    //     "email_title": "new report",
+    //     "email_body": "Hi James here is the new report. best regards"
+    // }"#;
 
     let matches = matcher.match_json_holistic(json).await?;
 
